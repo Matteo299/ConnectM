@@ -1,5 +1,5 @@
 from connect_m import *
-
+from copy import deepcopy
 def insertinto(oldgrid, n, col, player):
     grid = deepcopy(oldgrid)
     if grid[0][col]!=' ':
