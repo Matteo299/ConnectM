@@ -19,25 +19,30 @@ def print_grid(grid,n) :
             print(' '+grid[i][j],end=" |")
         print('\n'+"+---"*n+'+')
 
-def insert(grid,n,col,heights,player) :
+def find_lower_bound(x,m) :
+    if x-m<0 :
+        return x
+    else :
+        return m-1
+
+def find_upper_bound(x,m,n) :
+    if x+m>=n :
+        return n-1-x
+    else :
+        return m-1
+
+def insert(grid,n,col,heights,symbol) :
     if heights[col] == n:
         return -1
     row = n-heights[col]-1
-    if player == 1 :
-        grid[row][col] = 'X'
-    elif player == 2 :
-        grid[row][col] = 'O'
+    grid[row][col] = symbol
     heights[col] = heights[col] + 1
     return row
 
 def draw_check(n,heights) :
     return sum(heights)==n*n
 
-def goal_check(grid,n,m,row,col,player) :
-    if player==1 :
-        symbol = 'X'
-    elif player==2 :
-        symbol = 'O'
+def goal_check(grid,n,m,row,col,symbol) :
     return row_check(grid,n,m,row,col,symbol) or col_check(grid,n,m,row,col,symbol)\
         or diag_check(grid,n,m,row,col,symbol) or anti_diag_check(grid,n,m,row,col,symbol)
 
@@ -96,18 +101,61 @@ def anti_diag_check(grid,n,m,row,col,symbol) :
             count = 0
     return False
 
-def find_lower_bound(x,m) :
-    if x-m<0 :
-        return x
-    else :
-        return m-1
+def evaluation_function(grid,n,m,heights,hum,cpu) :
+    return count_row(grid,n,m,heights,hum,cpu) + count_col(grid,n,m,heights,hum,cpu)\
+        + count_diag(grid,n,m,hum,cpu) + count_diag(np.fliplr(grid),n,m,hum,cpu)
 
-def find_upper_bound(x,m,n) :
-    if x+m>=n :
-        return n-1-x
-    else :
-        return m-1
+def count_row(grid,n,m,heights,hum,cpu) :
+    mh = max(heights)
+    score = 0 
+    for i in range(0,mh) :
+        score += calculate_score(grid[n-i-1],n-m+1,m,hum,cpu)
+    #print(score)
+    return score
 
+def count_col(grid,n,m,heights,hum,cpu) :
+    score = 0
+    for i in range(0,n) :
+        if heights[i] > 0 :
+            start = max(0,n-heights[i]-m+1)
+            score += calculate_score((grid[:,i])[start:n],n-m-start+1,m,hum,cpu)
+    #print(score)
+    return score
+
+def count_diag(grid,n,m,hum,cpu) :
+    score = 0 
+    if n==m :
+        diag = grid.diagonal()
+        score = calculate_score(diag,len(diag)-m+1,m,hum,cpu)
+    else :
+        num_diags = range(-(n-m),(n-m+1))
+        for i in num_diags :
+            diag = grid.diagonal(i)
+            score += calculate_score(diag,len(diag)-m+1,m,hum,cpu)
+    #print(score)
+    return score
+
+
+def calculate_score(vec,iters,m,hum,cpu) :
+    cpu_score = 0 
+    hum_score = 0
+    #print(vec)
+    for j in range(0,iters) :
+        cpu_count = 0
+        hum_count = 0
+        for k in range(0,m) :
+            if vec[j+k] == cpu :
+                cpu_count += 1
+            elif vec[j+k] == hum :
+                hum_count += 1
+        if cpu_count > 0 and hum_count == 0 :
+            cpu_score += 1
+        if hum_count > 0 and cpu_count == 0 :
+            hum_score += 1
+    #print(cpu_score)
+    #print(hum_score)
+    return cpu_score - hum_score
+        
 
 def main():
 
@@ -135,11 +183,11 @@ def main():
     row = -1
 
     if h :
-        hum = 1
-        cpu = 2
+        hum = 'X'
+        cpu = 'O'
     else :
-        cpu = 1
-        hum = 2
+        hum = 'O'
+        cpu = 'X'
         col = rd.randint(0,n-1)
         insert(grid,n,col,heights,cpu)
 
@@ -165,6 +213,7 @@ def main():
             while (row:=insert(grid,n,col,heights,cpu))==-1 :
                 col = rd.randint(0,n-1)
             print_grid(grid,n)
+            print(evaluation_function(grid,n,m,heights,hum,cpu))
             if goal_check(grid,n,m,row,col,cpu) :
                 win = cpu
             elif draw_check(n,heights) :
