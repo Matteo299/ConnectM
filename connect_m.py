@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import random as rd
+import math
 
 def human_input(n) :
     col = input()
@@ -155,6 +156,63 @@ def calculate_score(vec,iters,m,hum,cpu) :
     #print(cpu_score)
     #print(hum_score)
     return cpu_score - hum_score
+
+def MiniMax(grid,n,m,heights,cpu,hum,depth):
+    
+    temp_grid = grid.copy()
+    temp_heights = heights.copy()
+    alpha = -np.inf
+    beta = np.inf
+    best_move = 0
+    
+    for i in range(n):
+        if (row:=insert(temp_grid,n,i,temp_heights,cpu))!=-1 :
+            #print(row)
+            new_alpha = minValue(temp_grid,alpha,beta,row,i,n,m,temp_heights,cpu,hum,depth)
+            temp_grid[row][i] = ' '
+            temp_heights[i] -= 1
+            if(new_alpha>alpha):
+                alpha = new_alpha
+                best_move = i
+    return best_move
+
+def minValue(grid,alpha,beta,row,col,n,m,heights,cpu,hum,depth):
+    if goal_check(grid,n,m,row,col,cpu) : 
+        return np.inf
+    if draw_check(n,heights) :
+        return 0
+    depth -= 1
+    if depth == 0 :
+        return evaluation_function(grid,n,m,heights,hum,cpu)
+    
+    for i in range(n):
+        if (row:=insert(grid,n,i,heights,hum))!=-1 :
+            beta = min(beta,maxValue(grid,alpha,beta,row,i,n,m,heights,cpu,hum,depth))
+            grid[row][i] = ' '
+            heights[i] -= 1
+            if(alpha>=beta) :
+                return -np.inf
+    return beta
+    
+
+def maxValue(temp_grid,alpha,beta,row,col,n,m,heights,cpu,hum,depth):
+    if goal_check(temp_grid,n,m,row,col,hum) : 
+        return -np.inf
+    if draw_check(n,heights) :
+        return 0
+    depth -= 1
+    if depth == 0 :
+        return evaluation_function(temp_grid,n,m,heights,hum,cpu)
+    
+    for i in range(n):
+        if (row:=insert(temp_grid,n,i,heights,cpu))!=-1 :
+            alpha = max(alpha,minValue(temp_grid,alpha,beta,row,i,n,m,heights,cpu,hum,depth))
+            temp_grid[row][i] = ' '
+            heights[i] -= 1
+            if(alpha>=beta) :
+                return np.inf
+    return alpha
+    
         
 
 def main():
@@ -188,8 +246,9 @@ def main():
     else :
         hum = 'O'
         cpu = 'X'
-        col = rd.randint(0,n-1)
-        insert(grid,n,col,heights,cpu)
+        #col = rd.randint(0,n-1)
+        #insert(grid,n,col,heights,cpu)
+        insert(grid,n,math.floor(n/2),heights,cpu)
 
     print_grid(grid,n)
 
@@ -209,11 +268,13 @@ def main():
         elif draw_check(n,heights) :
             draw = True
         else :
-            col = rd.randint(0,n-1)
-            while (row:=insert(grid,n,col,heights,cpu))==-1 :
-                col = rd.randint(0,n-1)
+            #col = rd.randint(0,n-1)
+            #while (row:=insert(grid,n,col,heights,cpu))==-1 :
+            #    col = rd.randint(0,n-1)
+            col = MiniMax(grid,n,m,heights,cpu,hum,5) 
+            row = insert(grid,n,col,heights,cpu)
+
             print_grid(grid,n)
-            print(evaluation_function(grid,n,m,heights,hum,cpu))
             if goal_check(grid,n,m,row,col,cpu) :
                 win = cpu
             elif draw_check(n,heights) :
